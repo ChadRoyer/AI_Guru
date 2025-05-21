@@ -1,3 +1,5 @@
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -25,6 +27,7 @@ export async function POST(req: Request) {
     },
     body: JSON.stringify({
       model: 'gpt-4o',
+      stream: true,
       messages: [
         { role: 'system', content: systemPrompt },
         ...messages
@@ -33,16 +36,15 @@ export async function POST(req: Request) {
   });
 
   if (!openaiRes.ok) {
-    throw new Error(`OpenAI request failed: ${openaiRes.status} ${openaiRes.statusText}`);
+    throw new Error(
+      `OpenAI request failed: ${openaiRes.status} ${openaiRes.statusText}`
+    );
   }
 
-  const data = await openaiRes.json();
-  const text = data.choices?.[0]?.message?.content;
+  const stream = OpenAIStream(openaiRes, {
+    experimental_streamMode: 'text'
+  });
 
-  if (typeof text !== 'string') {
-    throw new Error('Invalid OpenAI response');
-  }
-
-  return new Response(text);
+  return new StreamingTextResponse(stream);
 }
 

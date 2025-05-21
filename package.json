@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "react-flow-renderer": "^11.8.1"
+    "react-flow-renderer": "^11.8.1",
+    "ai": "^2.1.0"
   }
 }
