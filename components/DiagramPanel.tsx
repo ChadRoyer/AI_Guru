@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import ReactFlow, { useNodesState, useEdgesState } from 'react-flow-renderer';
+import ReactFlow, { useNodesState, useEdgesState } from 'reactflow';
 import { useDiagram } from './DiagramContext';
 import OpportunitiesPanel, { Opportunity } from './OpportunitiesPanel';
 
