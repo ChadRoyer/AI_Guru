@@ -18,6 +18,8 @@ export default function ChatPanel() {
   const { diagramUpdated } = useDiagram();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -25,7 +27,9 @@ export default function ChatPanel() {
   };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
+    setLoading(true);
+    setError(null);
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -50,8 +54,14 @@ export default function ChatPanel() {
         body: JSON.stringify({ messages: updatedMessages, phase: 'parse' })
       });
 
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`);
+      }
+
       const reader = res.body?.getReader();
-      if (!reader) return;
+      if (!reader) {
+        throw new Error('No response body');
+      }
       const decoder = new TextDecoder();
       let done = false;
       let acc = '';
@@ -82,6 +92,9 @@ export default function ChatPanel() {
       }
     } catch (err) {
       console.error('Request failed', err);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -103,6 +116,9 @@ export default function ChatPanel() {
         ))}
         <div ref={messagesEndRef} />
       </div>
+      {error && (
+        <div style={{ color: 'red', padding: '0.25rem 0' }}>{error}</div>
+      )}
       <textarea
         style={{ resize: 'none' }}
         rows={3}
@@ -110,6 +126,7 @@ export default function ChatPanel() {
         onChange={e => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type a message..."
+        disabled={loading}
       />
     </div>
   );
