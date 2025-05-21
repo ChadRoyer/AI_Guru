@@ -2,6 +2,7 @@
 
 import ChatPanel from '../components/ChatPanel'
 import DiagramPanel from '../components/DiagramPanel'
+import HistorySidebar, { type Workflow } from '../components/HistorySidebar'
 import { DiagramProvider } from '../components/DiagramContext'
 import AuthModal from '../components/AuthModal'
 import { useState, useEffect } from 'react'
@@ -11,6 +12,7 @@ export default function Page() {
   const supabase = getSupabaseClient()
   const [showAuth, setShowAuth] = useState(false)
   const [loggedIn, setLoggedIn] = useState(false)
+  const [workflowId, setWorkflowId] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -28,17 +30,24 @@ export default function Page() {
     await supabase.auth.signOut()
   }
 
+  const handleSelect = (wf: Workflow) => {
+    setWorkflowId(wf.id)
+  }
+
   return (
     <DiagramProvider>
       <div className="flex h-screen">
+        <div className="w-1/5 border-r border-gray-200">
+          <HistorySidebar onSelect={handleSelect} />
+        </div>
         <div className="w-2/5 border-r border-gray-200 p-2 space-y-2">
           <div>
             {!loggedIn && <button onClick={() => setShowAuth(true)}>Login</button>}
             {loggedIn && <button onClick={signOut}>Logout</button>}
           </div>
-          <ChatPanel />
+          <ChatPanel workflowId={workflowId} onWorkflowCreated={setWorkflowId} />
         </div>
-        <div className="w-3/5">
+        <div className="w-2/5">
           <DiagramPanel />
         </div>
       </div>

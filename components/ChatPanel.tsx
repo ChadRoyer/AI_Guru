@@ -1,5 +1,6 @@
-import React, { useState, useRef, KeyboardEvent } from 'react';
-import { useDiagram } from './DiagramContext';
+import React, { useState, useRef, KeyboardEvent, useEffect } from 'react'
+import { useDiagram } from './DiagramContext'
+import { getSupabaseClient } from '../lib/supabaseClient'
 
 export type Role = 'user' | 'assistant';
 
@@ -9,22 +10,46 @@ export interface Message {
   content: string;
 }
 
-const initialMessages: Message[] = [
-  { id: '1', role: 'user', content: 'Hello!' },
-  { id: '2', role: 'assistant', content: 'Hi there! How can I help you?' }
-];
+export interface ChatPanelProps {
+  workflowId: string | null
+  onWorkflowCreated: (id: string) => void
+}
 
-export default function ChatPanel() {
-  const { diagramUpdated } = useDiagram();
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function ChatPanel({ workflowId, onWorkflowCreated }: ChatPanelProps) {
+  const { diagramUpdated } = useDiagram()
+  const supabase = getSupabaseClient()
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    if (!workflowId) {
+      setMessages([])
+      return
+    }
+    ;(async () => {
+      const { data: msgs } = await supabase
+        .from('messages')
+        .select('id, role, content')
+        .eq('workflow_id', workflowId)
+        .order('created_at')
+      setMessages(msgs ?? [])
+      const { data: wf } = await supabase
+        .from('workflows')
+        .select('diagram')
+        .eq('id', workflowId)
+        .single()
+      if (wf?.diagram) {
+        diagramUpdated(wf.diagram)
+      }
+    })()
+  }, [workflowId, supabase, diagramUpdated])
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
@@ -36,16 +61,16 @@ export default function ChatPanel() {
       content: input
     };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    setInput('');
+    const updatedMessages = [...messages, userMessage]
+    setMessages(updatedMessages)
+    setInput('')
 
     const assistantMessage: Message = {
       id: `${Date.now()}-assistant`,
       role: 'assistant',
       content: ''
     };
-    setMessages(prev => [...prev, assistantMessage]);
+    setMessages(prev => [...prev, assistantMessage])
 
     try {
       const res = await fetch('/api/ai', {
@@ -81,14 +106,42 @@ export default function ChatPanel() {
         }
       }
 
-      const match = acc.match(/```json\s*([\s\S]*?)```/);
+      const match = acc.match(/```json\s*([\s\S]*?)```/)
+      let diagramJson: any = null
       if (match) {
         try {
-          const json = JSON.parse(match[1]);
-          diagramUpdated(json);
+          diagramJson = JSON.parse(match[1])
+          diagramUpdated(diagramJson)
         } catch (err) {
-          console.error('Failed to parse JSON', err);
+          console.error('Failed to parse JSON', err)
         }
+      }
+
+      let wfId = workflowId
+      if (!workflowId && diagramJson) {
+        const { data } = await supabase
+          .from('workflows')
+          .insert({ diagram: diagramJson })
+          .select('id')
+          .single()
+        wfId = data?.id || null
+        if (wfId) {
+          onWorkflowCreated(wfId)
+          await supabase.from('messages').insert(
+            updatedMessages
+              .concat({ ...assistantMessage, content: acc })
+              .map(m => ({
+                workflow_id: wfId,
+                role: m.role,
+                content: m.content
+              }))
+          )
+        }
+      } else if (wfId) {
+        await supabase.from('messages').insert([
+          { workflow_id: wfId, role: 'user', content: userMessage.content },
+          { workflow_id: wfId, role: 'assistant', content: acc }
+        ])
       }
     } catch (err) {
       console.error('Request failed', err);
