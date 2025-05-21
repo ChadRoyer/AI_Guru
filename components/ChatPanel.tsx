@@ -1,4 +1,5 @@
 import React, { useState, useRef, KeyboardEvent } from 'react';
+import { useDiagram } from './DiagramContext';
 
 export type Role = 'user' | 'assistant';
 
@@ -14,6 +15,7 @@ const initialMessages: Message[] = [
 ];
 
 export default function ChatPanel() {
+  const { diagramUpdated } = useDiagram();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -22,17 +24,65 @@ export default function ChatPanel() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
-    const newMessage: Message = {
+    const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: input
     };
-    setMessages([...messages, newMessage]);
+
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
-    // Scroll after DOM update
-    setTimeout(scrollToBottom, 0);
+
+    const assistantMessage: Message = {
+      id: `${Date.now()}-assistant`,
+      role: 'assistant',
+      content: ''
+    };
+    setMessages(prev => [...prev, assistantMessage]);
+
+    try {
+      const res = await fetch('/api/ai?phase=parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: updatedMessages, phase: 'parse' })
+      });
+
+      const reader = res.body?.getReader();
+      if (!reader) return;
+      const decoder = new TextDecoder();
+      let done = false;
+      let acc = '';
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          const chunk = decoder.decode(value);
+          acc += chunk;
+          const content = acc;
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === assistantMessage.id ? { ...m, content } : m
+            )
+          );
+          setTimeout(scrollToBottom, 0);
+        }
+      }
+
+      const match = acc.match(/```json\s*([\s\S]*?)```/);
+      if (match) {
+        try {
+          const json = JSON.parse(match[1]);
+          diagramUpdated(json);
+        } catch (err) {
+          console.error('Failed to parse JSON', err);
+        }
+      }
+    } catch (err) {
+      console.error('Request failed', err);
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
