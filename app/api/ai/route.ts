@@ -1,4 +1,6 @@
 import { OpenAIStream, StreamingTextResponse } from 'ai';
+import { PROMPT as WORKFLOW_DISCOVERY_SYSTEM } from '../../../src/prompts/workflowDiscovery';
+import { PROMPT as AI_OPPORTUNITIES_SYSTEM } from '../../../src/prompts/aiOpportunities';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -20,7 +22,7 @@ export async function POST(req: Request) {
   }
 
   if (phase === 'suggest') {
-    const prompt = `You are Workflow Discovery. Analyze the following diagram JSON and respond with a numbered markdown list of improvement opportunities. Each item should have a short title on the first line followed by one or more lines explaining the opportunity.`;
+    const prompt = AI_OPPORTUNITIES_SYSTEM;
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -29,7 +31,7 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: process.env.OPENAI_MODEL || 'gpt-4o',
         messages: [
           { role: 'system', content: prompt },
           { role: 'user', content: JSON.stringify(diagram ?? {}) }
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
     throw new Error(`Unsupported phase: ${phase}`);
   }
 
-  const systemPrompt = `You are Workflow Discovery, an assistant that turns a conversation into a workflow diagram. After analyzing the chat, respond with a single \`\`\`json code block containing an object with \"nodes\" and \"edges\" arrays. Each node should have an \"id\", \"data.label\" and a \"position\" with numeric \"x\" and \"y\" coordinates. Each edge should include an \"id\", \"source\" and \"target\". Provide no other text outside of the JSON code block.`;
+  const systemPrompt = WORKFLOW_DISCOVERY_SYSTEM;
 
   const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -59,7 +61,7 @@ export async function POST(req: Request) {
       Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
       stream: true,
       messages: [
         { role: 'system', content: systemPrompt },
