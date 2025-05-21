@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import ReactFlow, { useNodesState, useEdgesState, Node, Edge } from 'react-flow-renderer';
+import ReactFlow, { useNodesState, useEdgesState, Node, Edge } from 'reactflow';
 
 interface Props {
   nodes: Node[];

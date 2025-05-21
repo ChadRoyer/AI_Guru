@@ -29,7 +29,7 @@ export interface ReactFlowData {
 
 /**
  * Convert a plain JSON representation of a diagram into
- * the structure expected by react-flow-renderer.
+ * the structure expected by React Flow.
  *
  * The input should conform to the schema described in the PRD:
  *
