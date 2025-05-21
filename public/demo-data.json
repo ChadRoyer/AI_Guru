@@ -1,0 +1,21 @@
+{
+  "messages": [
+    {"role": "user", "content": "Let's outline the onboarding workflow."},
+    {"role": "assistant", "content": "Sure, here is a simple flow."},
+    {"role": "assistant", "content": "```json\n{\n  \"nodes\": [\n    {\"id\": \"1\", \"data\": {\"label\": \"Start\"}, \"position\": {\"x\": 0, \"y\": 0}},\n    {\"id\": \"2\", \"data\": {\"label\": \"Collect Docs\"}, \"position\": {\"x\": 150, \"y\": 0}},\n    {\"id\": \"3\", \"data\": {\"label\": \"Set Up Accounts\"}, \"position\": {\"x\": 300, \"y\": 0}}\n  ],\n  \"edges\": [\n    {\"id\": \"e1-2\", \"source\": \"1\", \"target\": \"2\"},\n    {\"id\": \"e2-3\", \"source\": \"2\", \"target\": \"3\"}\n  ]\n}\n```"},
+    {"role": "user", "content": "Great! What can we improve?"},
+    {"role": "assistant", "content": "1. Automate data entry\nUse a form to gather docs."}
+  ],
+  "nodes": [
+    {"id": "1", "data": {"label": "Start"}, "position": {"x": 0, "y": 0}},
+    {"id": "2", "data": {"label": "Collect Docs"}, "position": {"x": 150, "y": 0}},
+    {"id": "3", "data": {"label": "Set Up Accounts"}, "position": {"x": 300, "y": 0}}
+  ],
+  "edges": [
+    {"id": "e1-2", "source": "1", "target": "2"},
+    {"id": "e2-3", "source": "2", "target": "3"}
+  ],
+  "opportunities": [
+    {"id": "1", "title": "Automate data entry", "description": "Use a form to gather docs."}
+  ]
+}
