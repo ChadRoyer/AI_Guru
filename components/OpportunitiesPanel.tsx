@@ -6,28 +6,11 @@ export interface Opportunity {
   description: string;
 }
 
-const initialOpportunities: Opportunity[] = [
-  {
-    id: '1',
-    title: 'Optimize Sales Funnel',
-    description:
-      'Identify steps where leads drop off to improve conversions.'
-  },
-  {
-    id: '2',
-    title: 'Automate Reporting',
-    description:
-      'Replace manual report generation with automated dashboards.'
-  },
-  {
-    id: '3',
-    title: 'Improve Onboarding',
-    description:
-      'Streamline new employee setup to reduce ramp-up time.'
-  }
-];
+export interface OpportunitiesPanelProps {
+  opportunities: Opportunity[];
+}
 
-const OpportunitiesPanel: React.FC = () => {
+const OpportunitiesPanel: React.FC<OpportunitiesPanelProps> = ({ opportunities }) => {
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
   const toggle = (id: string) => {
@@ -36,7 +19,7 @@ const OpportunitiesPanel: React.FC = () => {
 
   return (
     <div style={{ padding: '0.5rem' }}>
-      {initialOpportunities.map(opp => (
+      {opportunities.map(opp => (
         <div
           key={opp.id}
           style={{ borderBottom: '1px solid #ccc', padding: '0.5rem 0' }}
