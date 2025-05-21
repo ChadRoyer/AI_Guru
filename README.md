@@ -6,6 +6,7 @@ AI_Guru is an experimental Next.js application that interacts with OpenAI models
 
 - **Node.js**: v18 or later is recommended.
 - **Environment variables**:
+  - Copy `.env.example` to `.env` and fill in the required values.
   - `OPENAI_API_KEY` – your OpenAI API key used by the `/api/ai` route.
 
 ## Getting Started
