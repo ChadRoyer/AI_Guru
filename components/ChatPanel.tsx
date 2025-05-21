@@ -1,6 +1,8 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react'
 import { useDiagram } from './DiagramContext'
 import { getSupabaseClient } from '../lib/supabaseClient'
+import TypingIndicator from './TypingIndicator'
+import Toast from './Toast'
 
 export type Role = 'user' | 'assistant';
 
@@ -21,7 +23,8 @@ export default function ChatPanel({ workflowId, onWorkflowCreated }: ChatPanelPr
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [streaming, setStreaming] = useState(false)
+  const [showToast, setShowToast] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -52,14 +55,16 @@ export default function ChatPanel({ workflowId, onWorkflowCreated }: ChatPanelPr
   }, [workflowId, supabase, diagramUpdated])
 
   const handleSend = async () => {
-    if (!input.trim() || loading) return;
-    setLoading(true);
-    setError(null);
+    const content = input.trim()
+    if (!content || loading) return
+    setLoading(true)
+    setStreaming(true)
+    setShowToast(false)
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input
-    };
+      content
+    }
 
     const updatedMessages = [...messages, userMessage]
     setMessages(updatedMessages)
@@ -69,7 +74,7 @@ export default function ChatPanel({ workflowId, onWorkflowCreated }: ChatPanelPr
       id: `${Date.now()}-assistant`,
       role: 'assistant',
       content: ''
-    };
+    }
     setMessages(prev => [...prev, assistantMessage])
 
     try {
@@ -105,6 +110,7 @@ export default function ChatPanel({ workflowId, onWorkflowCreated }: ChatPanelPr
           setTimeout(scrollToBottom, 0);
         }
       }
+      setStreaming(false)
 
       const match = acc.match(/```json\s*([\s\S]*?)```/)
       let diagramJson: any = null
@@ -144,10 +150,13 @@ export default function ChatPanel({ workflowId, onWorkflowCreated }: ChatPanelPr
         ])
       }
     } catch (err) {
-      console.error('Request failed', err);
-      setError('Something went wrong. Please try again.');
+      console.error('Request failed', err)
+      setMessages(prev => prev.filter(m => m.id !== assistantMessage.id && m.id !== userMessage.id))
+      setInput(content)
+      setShowToast(true)
     } finally {
-      setLoading(false);
+      setLoading(false)
+      setStreaming(false)
     }
   };
 
@@ -167,10 +176,19 @@ export default function ChatPanel({ workflowId, onWorkflowCreated }: ChatPanelPr
             <div>{msg.content}</div>
           </div>
         ))}
+        {streaming && <TypingIndicator />}
         <div ref={messagesEndRef} />
       </div>
-      {error && (
-        <div style={{ color: 'red', padding: '0.25rem 0' }}>{error}</div>
+      {showToast && (
+        <Toast
+          message="Something went wrong."
+          actionLabel="Retry"
+          onAction={() => {
+            setShowToast(false)
+            handleSend()
+          }}
+          onClose={() => setShowToast(false)}
+        />
       )}
       <textarea
         style={{ resize: 'none' }}
