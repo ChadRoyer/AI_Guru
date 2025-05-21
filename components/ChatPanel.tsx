@@ -48,7 +48,7 @@ export default function ChatPanel() {
     setMessages(prev => [...prev, assistantMessage]);
 
     try {
-      const res = await fetch('/api/ai?phase=parse', {
+      const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: updatedMessages, phase: 'parse' })
